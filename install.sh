@@ -12,12 +12,14 @@ AUTOSTART_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 
 AUTOSTART=0
 SERVICE=0
+AWAKE=0
 for arg in "$@"; do
   case "$arg" in
     --autostart) AUTOSTART=1 ;;
     --service) SERVICE=1 ;;
+    --awake) AWAKE=1 ;;
     -h|--help)
-      echo "Uso: $0 [--autostart] [--service]"
+      echo "Uso: $0 [--autostart] [--service] [--awake]"
       exit 0
       ;;
     *) echo "Opción desconocida: $arg" >&2; exit 2 ;;
@@ -43,7 +45,9 @@ python3 -m venv --system-site-packages "$PREFIX/venv"
 "$PREFIX/venv/bin/pip" install --quiet "$ROOT"
 ln -sf "$PREFIX/venv/bin/ocgm" "$BIN_DIR/ocgm"
 
-install -m 0644 "$ROOT/packaging/io.github.fresteban.OpencodeGoMonitor.desktop" "$APPS_DIR/"
+sed "s|^Exec=.*|Exec=$BIN_DIR/ocgm gui|" \
+  "$ROOT/packaging/io.github.fresteban.OpencodeGoMonitor.desktop" > "$APPS_DIR/io.github.fresteban.OpencodeGoMonitor.desktop"
+chmod 0644 "$APPS_DIR/io.github.fresteban.OpencodeGoMonitor.desktop"
 install -m 0644 "$ROOT/packaging/io.github.fresteban.OpencodeGoMonitor.svg" "$ICONS_DIR/"
 
 if [ "$AUTOSTART" -eq 1 ]; then
@@ -64,6 +68,16 @@ if [ "$SERVICE" -eq 1 ]; then
   systemctl --user daemon-reload
   systemctl --user enable --now ocgm.service
   echo "Servicio systemd de usuario activado."
+fi
+
+if [ "$AWAKE" -eq 1 ]; then
+  install -m 0755 "$ROOT/packaging/opencode-awake" "$BIN_DIR/opencode-awake"
+  mkdir -p "$SYSTEMD_DIR"
+  sed "s|@AWAKE@|$BIN_DIR/opencode-awake|" \
+    "$ROOT/packaging/opencode-awake.service" > "$SYSTEMD_DIR/opencode-awake.service"
+  systemctl --user daemon-reload
+  systemctl --user enable --now opencode-awake.service
+  echo "Regla anti-bloqueo activada."
 fi
 
 if command -v update-desktop-database >/dev/null; then

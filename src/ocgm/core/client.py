@@ -14,9 +14,16 @@ USER_AGENT = "ocgm/1.0"
 
 
 class ApiError(Exception):
-    def __init__(self, message: str, status: int = 0, retryable: bool = False) -> None:
+    def __init__(
+        self,
+        message: str,
+        status: int = 0,
+        retryable: bool = False,
+        retry_after: float | None = None,
+    ) -> None:
         self.status = status
         self.retryable = retryable
+        self.retry_after = retry_after
         super().__init__(message)
 
 
@@ -66,7 +73,19 @@ class OpenCodeClient:
                 raw = response.read()
         except HTTPError as error:
             retryable = error.code == 429 or error.code >= 500
-            raise ApiError(f"HTTP {error.code} en {path_and_query.split('?')[0]}", error.code, retryable) from None
+            retry_after: float | None = None
+            header = error.headers.get("Retry-After") if error.headers else None
+            if header:
+                try:
+                    retry_after = float(header)
+                except ValueError:
+                    retry_after = None
+            raise ApiError(
+                f"HTTP {error.code} en {path_and_query.split('?')[0]}",
+                error.code,
+                retryable,
+                retry_after,
+            ) from None
         except (URLError, TimeoutError, OSError) as error:
             raise ApiError(f"Sin conexión con opencode.ai: {error}", 0, True) from None
 
@@ -114,6 +133,8 @@ class OpenCodeClient:
             raise ApiError("Respuesta de peticiones sin lista 'items'", 200, False)
         items = [item for raw in raw_items if (item := self._parse_item(raw)) is not None]
         next_cursor = data.get("nextCursor")
+        if isinstance(next_cursor, dict):
+            next_cursor = json.dumps(next_cursor, separators=(",", ":"))
         return LogPage(
             items=items,
             next_cursor=next_cursor if isinstance(next_cursor, str) and next_cursor else None,

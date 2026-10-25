@@ -81,6 +81,18 @@ def test_status_without_credentials_exits_2(tmp_path: Path, capsys) -> None:
     assert "credencial" in capsys.readouterr().err.lower()
 
 
+def test_bare_ocgm_acts_as_status(tmp_path: Path, capsys) -> None:
+    code = main(
+        [],
+        cfg_loader=lambda: Config(),
+        data_path=tmp_path,
+        credential_resolver=lambda **_: Credential("t", "env", None, "api_key"),
+        client_factory=lambda _: FakeClient(make_usage(), [LogPage([], None, 30)]),
+    )
+    assert code == 0
+    assert "OpenCode Go" in capsys.readouterr().out
+
+
 def test_sync_full_flag_reaches_client(tmp_path: Path, capsys) -> None:
     store = Store(tmp_path / "monitor.db")
     store.init()

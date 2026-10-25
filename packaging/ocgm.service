@@ -1,7 +1,5 @@
 [Unit]
 Description=OpenCode Go Monitor (servicio headless)
-Documentation=https://github.com/
-After=graphical-session.target
 
 [Service]
 Type=simple

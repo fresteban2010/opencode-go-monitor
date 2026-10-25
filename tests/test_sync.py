@@ -66,6 +66,95 @@ class FakeClient:
         return self.pages[index]
 
 
+class CursorClient:
+    def __init__(
+        self,
+        pages: dict[str | None, LogPage],
+        fail: set[str | None] | None = None,
+        usage_result: Usage | Exception | None = None,
+    ) -> None:
+        self.pages = pages
+        self.fail = fail or set()
+        self.usage_result = usage_result if usage_result is not None else usage()
+        self.log_calls = 0
+
+    def usage(self) -> Usage:
+        if isinstance(self.usage_result, Exception):
+            raise self.usage_result
+        return self.usage_result
+
+    def request_logs(self, cursor=None, limit: int = 100) -> LogPage:
+        self.log_calls += 1
+        if cursor in self.fail:
+            raise ApiError("boom", 429, True, 60)
+        return self.pages.get(cursor, LogPage([], None, 30))
+
+
+def test_gap_is_resumed_after_a_failed_page(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    pages = {
+        None: LogPage([item("a"), item("b")], '{"after":{"id":"b"}}', 30),
+        '{"after":{"id":"b"}}': LogPage([item("c"), item("d")], '{"after":{"id":"d"}}', 30),
+        '{"after":{"id":"d"}}': LogPage([item("e")], '{"after":{"id":"e"}}', 30),
+        '{"after":{"id":"e"}}': LogPage([item("f")], None, 30),
+    }
+    client = CursorClient(pages, fail={'{"after":{"id":"d"}}'})
+
+    first = synchronize(store, client)  # type: ignore[arg-type]
+    assert first.new_requests == 4
+    assert first.logs_stale is True
+    assert first.errors
+    assert store.meta_get("backfill_cursor") == '{"after":{"id":"d"}}'
+    assert {r.id for r in store.requests()} == {"a", "b", "c", "d"}
+
+    client.fail.clear()
+    second = synchronize(store, client)  # type: ignore[arg-type]
+    assert second.errors == []
+    assert second.new_requests == 2
+    assert {r.id for r in store.requests()} == {"a", "b", "c", "d", "e", "f"}
+    assert store.meta_get("backfill_cursor") in (None, "")
+    store.close()
+
+
+def test_skipping_logs_only_queries_usage(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    client = CursorClient({})
+    result = synchronize(store, client, include_logs=False)  # type: ignore[arg-type]
+    assert result.logs_skipped is True
+    assert client.log_calls == 0
+    assert store.last_usage() is not None
+    store.close()
+
+
+def test_retry_metadata_propagates(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    client = CursorClient(
+        {None: LogPage([], None, 30)},
+        usage_result=ApiError("slow", 429, True, 60),
+    )
+    result = synchronize(store, client)  # type: ignore[arg-type]
+    assert result.stale is True
+    assert result.retryable is True
+    assert result.retry_after == 60
+    store.close()
+
+
+def test_full_sync_cap_reports_truncation_and_remembers_cursor(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    pages = {
+        None: LogPage([item("a")], '{"after":{"id":"a"}}', 30),
+        '{"after":{"id":"a"}}': LogPage([item("b")], '{"after":{"id":"b"}}', 30),
+        '{"after":{"id":"b"}}': LogPage([item("c")], None, 30),
+    }
+    client = CursorClient(pages)
+    result = synchronize(store, client, full=True, max_pages=2)  # type: ignore[arg-type]
+    assert result.truncated is True
+    assert result.new_requests == 2
+    assert store.meta_get("backfill_cursor") == '{"after":{"id":"b"}}'
+    store.close()
+
+
+
 def make_store(tmp_path: Path) -> Store:
     store = Store(tmp_path / "m.db")
     store.init()

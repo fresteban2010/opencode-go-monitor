@@ -63,6 +63,8 @@ def _from_opencode_db(path: Path, now: datetime) -> Credential | None:
         data = json.loads(row[0])
     except json.JSONDecodeError:
         return None
+    if not isinstance(data, dict):
+        return None
     token = data.get("access")
     if not isinstance(token, str) or not token:
         return None
@@ -75,6 +77,8 @@ def _from_auth_json(path: Path) -> Credential | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
         return None
     for provider in ("opencode-go", "opencode"):
         entry = data.get(provider)

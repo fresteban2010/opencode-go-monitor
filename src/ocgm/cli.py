@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import sys
 import time
 from dataclasses import asdict
@@ -57,6 +59,11 @@ def build_status(report, cred: Credential, store: Store, now: datetime) -> dict:
                 "resets_in_seconds": int(value.resets_in.total_seconds()),
             }
             for kind, value in result.burns.items()
+        },
+        "logs": {
+            "stale": report.logs_stale,
+            "skipped": report.logs_skipped,
+            "truncated": report.truncated,
         },
         "models": [asdict(model) for model in result.top_models],
     }
@@ -139,6 +146,8 @@ def cmd_sync(args, cfg: Config, store: Store, client: OpenCodeClient, cred: Cred
     for error in report.errors:
         print(f"aviso: {error}", file=sys.stderr)
     print(f"Sincronizado: {report.new_requests} nuevas peticiones en {report.pages} páginas.")
+    if report.truncated:
+        print("Aviso: quedan páginas pendientes; se continuará en la próxima sincronización.", file=sys.stderr)
     if report.stale:
         print("Cuota no actualizada; se muestra la última foto disponible.", file=sys.stderr)
     return 0 if not report.errors else 1
@@ -157,20 +166,39 @@ def cmd_doctor(args, cfg: Config, store: Store, client: OpenCodeClient, cred: Cr
         remaining = cred.expires_at - datetime.now(timezone.utc)
         check("Caducidad del token", remaining.total_seconds() > 60, f"{remaining.days} días")
     cfg_path = paths()[0]
-    check("Configuración", True, str(cfg_path) if cfg_path.exists() else "valores por defecto")
+    if cfg_path.exists():
+        mode = cfg_path.stat().st_mode & 0o777
+        check("Configuración", mode & 0o077 == 0, f"{cfg_path} ({oct(mode)})")
+    else:
+        check("Configuración", True, "valores por defecto")
     check("Caché local", store.path.exists(), str(store.path))
     try:
         usage = client.usage()
         check("API de cuota", True, f"rolling {usage.rolling.percent:.0f}%")
     except Exception as error:  # noqa: BLE001 - doctor must report, never crash
         check("API de cuota", False, str(error))
+    if cred.kind == "oauth":
+        try:
+            page = client.request_logs(limit=1)
+            check("API de peticiones", True, f"retención {page.retention_days} días")
+        except Exception as error:  # noqa: BLE001
+            check("API de peticiones", False, str(error))
+    else:
+        print("· API de peticiones: no disponible con API key (solo cuota y BD local)")
     now = datetime.now(timezone.utc)
-    local = localdb.session_totals(localdb.DEFAULT_OPENCODE_DB, now - timedelta(days=30))
-    check(
-        "Base de datos de OpenCode",
-        True,
-        f"{local.sessions} sesiones (30 d)" if localdb.DEFAULT_OPENCODE_DB.exists() else "no encontrada; solo API",
-    )
+    since = now - timedelta(days=30)
+    local = localdb.session_totals(localdb.DEFAULT_OPENCODE_DB, since)
+    if localdb.DEFAULT_OPENCODE_DB.exists():
+        check("Base de datos de OpenCode", True, f"{local.sessions} sesiones (30 d)")
+        server_cost = store.cost_since(since)
+        if local.cost_usd > 0:
+            rec = localdb.compare(server_cost, localdb.DEFAULT_OPENCODE_DB, since)
+            print(
+                f"· Conciliación 30 d: servidor ${server_cost:.2f} · "
+                f"local ${rec.local_cost:.2f} (Δ {rec.delta_pct:+.0f}%)"
+            )
+    else:
+        print("· Base de datos de OpenCode: no encontrada (solo API)")
     return 0 if ok else 1
 
 
@@ -188,13 +216,12 @@ def cmd_watch(args, cfg: Config, store: Store, client: OpenCodeClient, cred: Cre
 
 
 def cmd_autostart(args) -> int:
-    autostart = Path.home() / ".config" / "autostart" / "opencode-go-monitor.desktop"
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+    autostart = config_home / "autostart" / "opencode-go-monitor.desktop"
     if args.action == "status":
         print("activado" if autostart.exists() else "desactivado")
         return 0
     if args.action == "enable":
-        import shutil
-
         autostart.parent.mkdir(parents=True, exist_ok=True)
         executable = shutil.which("ocgm") or f"{sys.executable} -m ocgm"
         autostart.write_text(
@@ -212,6 +239,7 @@ def cmd_autostart(args) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ocgm", description="OpenCode Go Monitor")
+    parser.set_defaults(json=False, full=False)
     sub = parser.add_subparsers(dest="command")
     status = sub.add_parser("status", help="muestra el estado actual")
     status.add_argument("--json", action="store_true", help="salida JSON")

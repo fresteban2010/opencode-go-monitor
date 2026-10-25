@@ -91,3 +91,15 @@ def test_resolve_does_not_modify_opencode_db(tmp_path: Path) -> None:
     before = db.read_bytes()
     resolve(opencode_db=db, auth_json=tmp_path / "absent.json", now=NOW)
     assert db.read_bytes() == before
+
+
+def test_credential_json_of_wrong_type_does_not_crash(tmp_path: Path) -> None:
+    db = tmp_path / "opencode.db"
+    conn = sqlite3.connect(db)
+    conn.execute("create table credential (id text, integration_id text, value text, time_updated integer)")
+    conn.execute("insert into credential values ('c1','opencode','[]',0)")
+    conn.commit()
+    conn.close()
+    with pytest.raises(CredentialsError) as err:
+        resolve(opencode_db=db, auth_json=tmp_path / "absent.json", now=NOW)
+    assert err.value.reason == "missing"

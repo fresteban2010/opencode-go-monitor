@@ -31,9 +31,20 @@ class CostChart(Gtk.DrawingArea):
         left, right, top, bottom = 12.0, 12.0, 22.0, 26.0
         plot_w = max(1.0, width - left - right)
         plot_h = max(1.0, height - top - bottom)
-        maximum = max((value for _, value in data), default=0.0) or 1.0
+        fg = self.get_style_context().get_color()
 
-        cr.set_source_rgba(1, 1, 1, 0.08)
+        maximum = max((value for _, value in data), default=0.0)
+        if maximum <= 0:
+            cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.55)
+            cr.select_font_face("Sans", 0, 0)
+            cr.set_font_size(12)
+            label = "Sin gasto en este periodo"
+            extents = cr.text_extents(label)
+            cr.move_to((width - extents.width) / 2, height / 2)
+            cr.show_text(label)
+            return
+
+        cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.08)
         cr.rectangle(left, top, plot_w, plot_h)
         cr.fill()
 
@@ -47,7 +58,7 @@ class CostChart(Gtk.DrawingArea):
             cr.rectangle(x, y, bar_w, bar_h)
             cr.fill()
 
-        cr.set_source_rgba(1, 1, 1, 0.55)
+        cr.set_source_rgba(fg.red, fg.green, fg.blue, 0.55)
         cr.select_font_face("Sans", 0, 0)
         cr.set_font_size(10)
         cr.move_to(left, top - 6)

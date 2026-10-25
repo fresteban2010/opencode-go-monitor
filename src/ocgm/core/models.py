@@ -12,7 +12,8 @@ class WindowUsage:
 
     @property
     def is_limited(self) -> bool:
-        return self.status != "ok" or self.percent >= 100.0
+        known = {"rate-limited", "limited", "exceeded", "quota_exceeded", "quota-exceeded"}
+        return self.status.strip().lower() in known or self.percent >= 100.0
 
 
 @dataclass(frozen=True)

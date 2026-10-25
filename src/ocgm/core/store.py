@@ -24,7 +24,7 @@ def _dt(value: int | None) -> datetime:
 class Store:
     def __init__(self, path: Path) -> None:
         self.path = path
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._conn: sqlite3.Connection | None = None
 
     def init(self) -> None:
@@ -70,6 +70,7 @@ class Store:
             );
             create index if not exists requests_started_idx on requests(started_at);
             create index if not exists requests_model_idx on requests(model);
+            create index if not exists usage_fetched_idx on usage_snapshots(fetched_at);
             create table if not exists alert_log (
                 id integer primary key autoincrement,
                 window text not null,
@@ -229,17 +230,18 @@ class Store:
         return [ModelAgg(r[0], r[1], r[2], r[3], r[4], r[5]) for r in rows]
 
     def daily_cost(self, days: int = 14, now: datetime | None = None) -> list[tuple[date, float]]:
-        now = now or datetime.now(timezone.utc)
-        today = now.astimezone(timezone.utc).date()
+        now = now or datetime.now().astimezone()
+        tz = now.tzinfo or timezone.utc
+        today = now.astimezone(tz).date()
         first = today - timedelta(days=days - 1)
-        start = datetime.combine(first, time.min, tzinfo=timezone.utc)
+        start = datetime.combine(first, time.min, tzinfo=tz).astimezone(timezone.utc)
         with self._lock:
             rows = self._db().execute(
                 "select started_at, cost_usd from requests where started_at >= ?", (_ms(start),)
             ).fetchall()
         totals: dict[date, float] = {}
         for started_at, cost in rows:
-            day = _dt(started_at).date()
+            day = _dt(started_at).astimezone(tz).date()
             totals[day] = totals.get(day, 0.0) + cost
         return [(first + timedelta(days=n), totals.get(first + timedelta(days=n), 0.0)) for n in range(days)]
 

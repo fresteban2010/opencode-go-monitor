@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -107,6 +107,23 @@ def test_daily_cost_includes_empty_days_and_older_requests(tmp_path: Path) -> No
     store.close()
 
 
+def test_daily_cost_uses_local_day(tmp_path: Path) -> None:
+    store = Store(tmp_path / "m.db")
+    store.init()
+    tz = timezone(timedelta(hours=-5))
+    now = datetime(2026, 10, 25, 4, 30, tzinfo=tz)  # 09:30 UTC
+    store.upsert_requests(
+        [
+            item("late", 0.10, started=datetime(2026, 10, 25, 4, 0, tzinfo=timezone.utc)),
+            item("early", 0.20, started=datetime(2026, 10, 25, 6, 0, tzinfo=timezone.utc)),
+        ]
+    )
+    days = dict(store.daily_cost(days=2, now=now))
+    assert days[date(2026, 10, 24)] == pytest.approx(0.10)
+    assert days[date(2026, 10, 25)] == pytest.approx(0.20)
+    store.close()
+
+
 def test_meta_roundtrip(tmp_path: Path) -> None:
     store = Store(tmp_path / "m.db")
     store.init()
@@ -123,4 +140,10 @@ def test_alert_cooldown(tmp_path: Path) -> None:
     assert store.record_alert("rolling", "threshold", 72.0, NOW + timedelta(minutes=5)) is False
     assert store.record_alert("weekly", "threshold", 70.0, NOW + timedelta(minutes=5)) is True
     assert store.record_alert("rolling", "threshold", 70.0, NOW + timedelta(minutes=31)) is True
+    store.close()
+
+
+def test_store_can_be_used_without_explicit_init(tmp_path: Path) -> None:
+    store = Store(tmp_path / "lazy.db")
+    assert store.last_usage() is None
     store.close()

@@ -56,6 +56,18 @@ systemctl --user status ocgm.service
 journalctl --user -u ocgm.service -f
 ```
 
+## Mantener la pantalla activa
+
+```bash
+./install.sh --awake
+systemctl --user status opencode-awake.service
+systemd-inhibit --list | grep OpenCode
+```
+
+El servicio detecta sesiones interactivas de `opencode` con TTY (no el servicio
+`serve`) e inhibe `idle:sleep` y el bloqueo de pantalla. Se libera al cerrar
+OpenCode.
+
 ## Problemas frecuentes
 
 - **No aparece la bandeja en GNOME**: instala la extensión AppIndicator.

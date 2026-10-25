@@ -81,3 +81,26 @@ def test_summary_aggregates_spend_and_models(tmp_path) -> None:
     assert [m.model for m in result.top_models] == ["model-b", "model-a"]
     assert set(result.burns) == {"rolling", "weekly", "monthly"}
     store.close()
+
+
+def test_summary_today_uses_local_midnight(tmp_path) -> None:
+    tz = timezone(timedelta(hours=-5))
+    now = datetime(2026, 10, 25, 4, 30, tzinfo=tz)  # 09:30 UTC
+    store = Store(tmp_path / "m.db")
+    store.init()
+    store.upsert_requests(
+        [
+            RequestItem(
+                "late", datetime(2026, 10, 25, 4, 0, tzinfo=timezone.utc), "m", "p", "cli",
+                "s", "succeeded", 200, 1, 1, 0, 0, 0, 0.30, 1, 1,
+            ),
+            RequestItem(
+                "early", datetime(2026, 10, 25, 6, 0, tzinfo=timezone.utc), "m", "p", "cli",
+                "s", "succeeded", 200, 1, 1, 0, 0, 0, 0.20, 1, 1,
+            ),
+        ]
+    )
+    result = summary(store, now=now)
+    assert result.spend_today == pytest.approx(0.20)
+    assert result.spend_7d == pytest.approx(0.50)
+    store.close()

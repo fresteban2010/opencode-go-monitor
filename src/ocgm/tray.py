@@ -69,8 +69,18 @@ MENU_XML = """
 </node>
 """
 
-ICONS = {"ok": "emblem-ok", "warn": "dialog-warning", "danger": "dialog-error"}
+ICONS = {"ok": "emblem-ok-symbolic", "warn": "dialog-warning", "danger": "dialog-error"}
 LABELS = {"rolling": "5 h", "weekly": "sem", "monthly": "mes"}
+
+
+def severity_for(percent: float, thresholds: tuple[int, ...]) -> str:
+    warn = thresholds[0] if thresholds else 70
+    danger = thresholds[1] if len(thresholds) > 1 else warn
+    if percent >= danger:
+        return "danger"
+    if percent >= warn:
+        return "warn"
+    return "ok"
 
 class Tray:
     def __init__(self, monitor: Monitor | None = None) -> None:
@@ -82,6 +92,7 @@ class Tray:
         self.cfg = self.monitor.cfg
         self._loop = GLib.MainLoop()
         self._refreshing = False
+        self._timer_id = 0
         self._revision = 1
         self._title = "OpenCode Go"
         self._subtitle = "Cargando…"
@@ -231,7 +242,7 @@ class Tray:
                 if entry_id == 1:
                     self.open_window()
                 elif entry_id == 2:
-                    self.refresh()
+                    self.refresh(force=True)
                 elif entry_id == 4:
                     self._loop.quit()
             invocation.return_value(None)
@@ -252,14 +263,18 @@ class Tray:
             start_new_session=True,
         )
 
-    def refresh(self) -> None:
+    def refresh(self, force: bool = False) -> None:
         if self._refreshing:
             return
         self._refreshing = True
 
         def work() -> None:
-            self.monitor.refresh()
-            self.GLib.idle_add(self._update)
+            try:
+                self.monitor.refresh(force=force)
+            except Exception as error:  # noqa: BLE001 - never leave the tray stuck
+                self.monitor.last_error = f"Error inesperado: {error}"
+            finally:
+                self.GLib.idle_add(self._update)
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -273,7 +288,7 @@ class Tray:
             self._icon = ICONS["warn"]
         else:
             worst = usage.worst_percent
-            self._icon = ICONS["danger"] if worst >= 85 else ICONS["warn"] if worst >= 70 else ICONS["ok"]
+            self._icon = ICONS[severity_for(worst, self.cfg.thresholds)]
             self._subtitle = " · ".join(
                 f"{LABELS[kind]} {window.percent:.0f}%" for kind, window in usage.by_window().items()
             )
@@ -290,14 +305,27 @@ class Tray:
 
     def run(self) -> int:
         self.refresh()
-        self.GLib.timeout_add_seconds(self.cfg.poll_seconds, self._tick)
+        self._schedule()
         try:
             self._loop.run()
         finally:
             self.monitor.close()
         return 0
 
+    def _schedule(self) -> None:
+        if self._timer_id:
+            self.GLib.source_remove(self._timer_id)
+        self._timer_id = self.GLib.timeout_add_seconds(self.cfg.poll_seconds, self._tick)
+
     def _tick(self) -> bool:
+        from .core.notify import Notifier
+
+        cfg = load()
+        if cfg != self.cfg:
+            self.cfg = cfg
+            self.monitor.cfg = cfg
+            self.monitor.notifier = Notifier(self.monitor.store, cfg.thresholds)
+            self._schedule()
         self.refresh()
         return True
 

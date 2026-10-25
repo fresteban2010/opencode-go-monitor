@@ -85,7 +85,14 @@ class SettingsPage(Adw.PreferencesPage):
             notify=self.notify.get_active(),
             api_key=self.api_key.get_text().strip() or None,
         )
-        save(cfg)
+        try:
+            save(cfg)
+        except OSError as error:
+            self.status.set_text(f"No se pudo guardar: {error}")
+            self.status.add_css_class("danger")
+            self.status_row.set_visible(True)
+            return
+        self._cfg = cfg
         self.status.remove_css_class("danger")
         self.status.set_text("Guardado.")
         self.status_row.set_visible(True)

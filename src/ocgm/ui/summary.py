@@ -121,9 +121,13 @@ class SummaryPage(Gtk.ScrolledWindow):
         stale: bool,
         error: str | None,
         source: str | None,
+        logs_unavailable: bool = False,
+        local_spend: dict[str, float] | None = None,
     ) -> None:
         if error:
-            self.status.set_text(f"No se pudo actualizar: {error}")
+            when = clock(updated_at) if updated_at else None
+            suffix = f" · última foto de las {when}" if when else ""
+            self.status.set_text(f"No se pudo actualizar: {error}{suffix}")
             self.status.remove_css_class("dim-label")
             self.status.add_css_class("danger")
         else:
@@ -153,11 +157,14 @@ class SummaryPage(Gtk.ScrolledWindow):
             burn = state.burns.get(kind)
             value.set_text(f"{window.percent:.0f}%")
             bar.set_fraction(max(0.0, min(1.0, window.percent / 100.0)))
-            reset.set_text(
+            reset_text = (
                 "Límite alcanzado"
                 if window.is_limited
                 else f"Reset en {human_delta(burn.resets_in if burn else window.resets_at - usage.fetched_at)}"
             )
+            if not window.is_limited and window.status not in ("ok", "unknown", ""):
+                reset_text = f"{window.status} · {reset_text}"
+            reset.set_text(reset_text)
             if window.is_limited:
                 value.add_css_class("danger")
                 projection.set_text("Esta ventana está agotada.")
@@ -175,9 +182,18 @@ class SummaryPage(Gtk.ScrolledWindow):
                 value.add_css_class("ok")
                 projection.set_text(f"Proyección {burn.projected_percent:.0f}% al reset.")
 
-        self.spend_today.set_text(money(state.spend_today))
-        self.spend_7d.set_text(money(state.spend_7d))
-        self.spend_30d.set_text(money(state.spend_30d))
+        self.spend_today.set_text(money(local_spend["today"] if local_spend else state.spend_today))
+        self.spend_7d.set_text(money(local_spend["7d"] if local_spend else state.spend_7d))
+        self.spend_30d.set_text(money(local_spend["30d"] if local_spend else state.spend_30d))
         self.chart.set_data(daily)
         models = len(state.top_models)
-        self.footer.set_text(f"{models} modelos con actividad en 30 días · la cuota es agregada de la cuenta")
+        if logs_unavailable:
+            self.footer.set_text(
+                "Detalle por petición no disponible"
+                + ("; gasto estimado desde la BD local de OpenCode" if local_spend else "")
+                + "."
+            )
+        else:
+            self.footer.set_text(
+                f"{models} modelos con actividad en 30 días · la cuota es agregada de la cuenta"
+            )

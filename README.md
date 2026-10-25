@@ -11,7 +11,7 @@ oficiales de `opencode.ai` en modo lectura.
 
 - **3 medidores oficiales**: 5 h, semanal y mensual, con porcentaje, estado y
   cuenta atrás hasta el reset.
-- **Gasto real por petición**: coste, tokens, caché, modelo, cliente, sesión y
+- **Gasto real por petición**: coste, tokens, caché, modelo, cliente y
   resultado, desde los logs del servidor (no estimaciones).
 - **Proyección de agotamiento**: “a este ritmo se agota a las 23:40”.
 - **Histórico local**: SQLite propia; conserva datos más allá de los 30 días que
@@ -38,7 +38,6 @@ sudo pacman -S python-gobject gtk4 libadwaita libnotify
 ## Instalación
 
 ```bash
-git clone <repo> opencode-go-monitor
 cd opencode-go-monitor
 ./install.sh
 ```
@@ -49,6 +48,7 @@ el comando `ocgm` en `~/.local/bin`, el lanzador `.desktop` y el icono. Opciones
 ```bash
 ./install.sh --autostart   # arranca la bandeja al iniciar sesión
 ./install.sh --service     # instala y activa el servicio systemd de usuario
+./install.sh --awake       # evita que la pantalla se bloquee con OpenCode abierto
 ```
 
 Después:
@@ -81,8 +81,24 @@ la base de datos de OpenCode; si caduca, abre OpenCode o configura una API key.
   gasto por modelo sí se calcula con los logs.
 - Los logs del servidor se conservan 30 días; para más histórico se usa la caché
   local, que empieza a llenarse desde la primera sincronización.
+- Con una API key (sin OAuth de Console) no hay logs por petición: se muestran
+  los medidores oficiales y, si la caché está vacía, un gasto estimado desde la
+  BD local de OpenCode.
 - El coste de la BD local puede diferir del servidor; manda el servidor.
 - La bandeja usa StatusNotifierItem; en GNOME requiere la extensión AppIndicator.
+
+## Regla anti-bloqueo (opcional)
+
+`opencode-awake` mantiene la pantalla y el equipo despiertos mientras haya una
+sesión interactiva de OpenCode abierta. Registra un inhibidor `idle:sleep` de
+logind y un `Inhibit` de `org.freedesktop.ScreenSaver`; al cerrar OpenCode los
+libera. No afecta al servicio `opencode serve` en segundo plano.
+
+```bash
+./install.sh --awake
+systemctl --user status opencode-awake.service
+systemd-inhibit --list | grep OpenCode
+```
 
 ## Datos y privacidad
 

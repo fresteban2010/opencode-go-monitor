@@ -66,7 +66,8 @@ def burn(window: WindowUsage, kind: str, now: datetime) -> Burn:
 
 def summary(store: Store, now: datetime | None = None) -> Summary:
     now = now or datetime.now(timezone.utc)
-    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    local = now.astimezone()
+    day_start = local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
     usage = store.last_usage()
     burns: dict[str, Burn] = {}
     if usage is not None:

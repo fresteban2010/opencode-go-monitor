@@ -59,6 +59,8 @@ class Handler(BaseHTTPRequestHandler):
         payload = json.dumps(body).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        if status == 429:
+            self.send_header("Retry-After", "120")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
@@ -113,6 +115,16 @@ def test_usage_429_is_retryable() -> None:
             OpenCodeClient("tok", base_url=base).usage()
     assert err.value.status == 429
     assert err.value.retryable is True
+    assert err.value.retry_after == 120.0
+
+
+def test_next_cursor_object_is_serialized() -> None:
+    body = dict(LOG_BODY)
+    body["nextCursor"] = {"after": {"startedAt": 1, "id": "req_1"}}
+    with serve({"/console/api/request-logs": (200, body)}) as base:
+        page = OpenCodeClient("tok", base_url=base).request_logs()
+    assert isinstance(page.next_cursor, str)
+    assert json.loads(page.next_cursor) == {"after": {"startedAt": 1, "id": "req_1"}}
 
 
 def test_invalid_json_raises_api_error() -> None:

@@ -49,6 +49,32 @@ def test_save_roundtrips_with_private_permissions(tmp_path: Path) -> None:
     assert oct(p.stat().st_mode & 0o777) == "0o600"
 
 
+def test_malformed_numeric_values_fall_back_to_defaults(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text(
+        'poll_seconds = "abc"\nstale_after_seconds = "x"\nrequest_page_size = "z"\n',
+        encoding="utf-8",
+    )
+    cfg = load(p)
+    assert cfg.poll_seconds == 60
+    assert cfg.stale_after_seconds == 180
+    assert cfg.request_page_size == 100
+
+
+def test_string_booleans_are_understood(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('notify = "false"\n', encoding="utf-8")
+    assert load(p).notify is False
+    p.write_text('notify = "true"\n', encoding="utf-8")
+    assert load(p).notify is True
+
+
+def test_ignores_non_string_api_key(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text("api_key = 123\n", encoding="utf-8")
+    assert load(p).api_key is None
+
+
 def test_paths_follow_xdg(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))

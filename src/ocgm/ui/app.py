@@ -79,10 +79,14 @@ class MainWindow(Adw.ApplicationWindow):
 
         stack = Adw.ViewStack()
         self.stack = stack
-        stack.add_titled(self.summary_page, "summary", "Resumen")
-        stack.add_titled(self.models_page, "models", "Modelos")
-        stack.add_titled(self.requests_page, "requests", "Peticiones")
-        stack.add_titled(self.settings_page, "settings", "Ajustes")
+        pages = (
+            (self.summary_page, "summary", "Resumen", "speedometer-symbolic"),
+            (self.models_page, "models", "Modelos", "view-grid-symbolic"),
+            (self.requests_page, "requests", "Peticiones", "view-list-symbolic"),
+            (self.settings_page, "settings", "Ajustes", "preferences-system-symbolic"),
+        )
+        for page, name, title, icon in pages:
+            stack.add_titled(page, name, title).set_icon_name(icon)
 
         header = Adw.HeaderBar()
         switcher = Adw.ViewSwitcher(stack=stack)
@@ -91,7 +95,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         refresh = Gtk.Button(icon_name="view-refresh-symbolic")
         refresh.set_tooltip_text("Actualizar ahora")
-        refresh.connect("clicked", lambda *_: self.refresh())
+        refresh.connect("clicked", lambda *_: self.refresh(force=True))
         header.pack_end(refresh)
 
         self.save_button = Gtk.Button(label="Guardar")
@@ -125,27 +129,41 @@ class MainWindow(Adw.ApplicationWindow):
         self.refresh()
         return True
 
-    def refresh(self) -> None:
+    def refresh(self, force: bool = False) -> None:
         if self._busy:
             return
         self._busy = True
-        threading.Thread(target=self._work, daemon=True).start()
+        threading.Thread(target=self._work, args=(force,), daemon=True).start()
 
-    def _work(self) -> None:
-        self.monitor.refresh()
-        state = self.monitor.summary()
-        daily = self.monitor.store.daily_cost(14)
-        requests = self.monitor.store.requests(1000)
-        GLib.idle_add(self._apply, state, daily, requests)
+    def _work(self, force: bool = False) -> None:
+        try:
+            self.monitor.refresh(force=force)
+            state = self.monitor.summary()
+            daily = self.monitor.store.daily_cost(14)
+            requests = self.monitor.store.requests(1000)
+            local = None
+            if self.monitor.logs_unavailable and state.spend_30d == 0:
+                local = self.monitor.local_spend()
+            GLib.idle_add(self._apply, state, daily, requests, local)
+        except Exception as error:  # noqa: BLE001 - never leave the UI stuck
+            self.monitor.last_error = f"Error inesperado: {error}"
+            GLib.idle_add(self._apply, self.monitor.summary(), [], [], None)
 
-    def _apply(self, state, daily, requests) -> bool:
+    def _apply(self, state, daily, requests, local_spend=None) -> bool:
         self._busy = False
         usage = state.usage
         updated_at = usage.fetched_at if usage is not None else None
         stale = self.monitor.is_stale()
         source = self.monitor.credential.source if self.monitor.credential else None
         self.summary_page.render(
-            state, daily, updated_at, stale, self.monitor.last_error, source
+            state,
+            daily,
+            updated_at,
+            stale,
+            self.monitor.last_error,
+            source,
+            self.monitor.logs_unavailable,
+            local_spend,
         )
         self.models_page.render(state.top_models)
         self.requests_page.render(requests)
