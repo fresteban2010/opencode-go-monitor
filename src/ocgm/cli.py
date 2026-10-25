@@ -196,7 +196,7 @@ def cmd_autostart(args) -> int:
         autostart.parent.mkdir(parents=True, exist_ok=True)
         autostart.write_text(
             "[Desktop Entry]\nType=Application\nName=OpenCode Go Monitor\n"
-            "Exec=ocgm gui --minimized\nX-GNOME-Autostart-enabled=true\n",
+            "Exec=ocgm tray\nX-GNOME-Autostart-enabled=true\n",
             encoding="utf-8",
         )
         print(f"Autostart activado: {autostart}")
@@ -216,7 +216,8 @@ def build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--full", action="store_true", help="recorre los 30 días completos")
     sub.add_parser("doctor", help="diagnóstico de credenciales y APIs")
     sub.add_parser("watch", help="vista en terminal con refresco")
-    sub.add_parser("gui", help="abre la ventana GTK4")
+    gui = sub.add_parser("gui", help="abre la ventana GTK4")
+    gui.add_argument("--no-tray", action="store_true", help="no iniciar la bandeja")
     sub.add_parser("tray", help="icono de bandeja")
     sub.add_parser("service", help="bucle headless para systemd")
     auto = sub.add_parser("autostart", help="gestiona el inicio automático")
