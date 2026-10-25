@@ -22,6 +22,7 @@
   `resets_in_seconds` y `stale`.
 - `spend`: `today`, `last_7d`, `last_30d`.
 - `burn`: ritmo y proyección por ventana.
+- `logs`: `stale`, `skipped` y `truncated`.
 - `models`: peticiones, tokens y coste por modelo (30 días).
 
 ## Configuración

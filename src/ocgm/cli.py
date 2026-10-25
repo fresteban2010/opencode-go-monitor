@@ -194,7 +194,7 @@ def cmd_doctor(args, cfg: Config, store: Store, client: OpenCodeClient, cred: Cr
         if local.cost_usd > 0:
             rec = localdb.compare(server_cost, localdb.DEFAULT_OPENCODE_DB, since)
             print(
-                f"· Conciliación 30 d: servidor ${server_cost:.2f} · "
+                f"· Conciliación 30 d (referencia): servidor ${server_cost:.2f} · "
                 f"local ${rec.local_cost:.2f} (Δ {rec.delta_pct:+.0f}%)"
             )
     else:

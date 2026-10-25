@@ -80,12 +80,14 @@ class OpenCodeClient:
                     retry_after = float(header)
                 except ValueError:
                     retry_after = None
-            raise ApiError(
-                f"HTTP {error.code} en {path_and_query.split('?')[0]}",
-                error.code,
-                retryable,
-                retry_after,
-            ) from None
+            if error.code in (401, 403):
+                message = (
+                    f"Credencial rechazada (HTTP {error.code}). "
+                    "Abre OpenCode para renovarla o revisa la API key."
+                )
+            else:
+                message = f"HTTP {error.code} en {path_and_query.split('?')[0]}"
+            raise ApiError(message, error.code, retryable, retry_after) from None
         except (URLError, TimeoutError, OSError) as error:
             raise ApiError(f"Sin conexión con opencode.ai: {error}", 0, True) from None
 

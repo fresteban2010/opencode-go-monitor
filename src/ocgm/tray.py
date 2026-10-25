@@ -325,7 +325,9 @@ class Tray:
             self.cfg = cfg
             self.monitor.cfg = cfg
             self.monitor.notifier = Notifier(self.monitor.store, cfg.thresholds)
-            self._schedule()
+            self._timer_id = self.GLib.timeout_add_seconds(cfg.poll_seconds, self._tick)
+            self.refresh()
+            return False
         self.refresh()
         return True
 
