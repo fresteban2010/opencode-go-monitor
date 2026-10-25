@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -14,6 +16,7 @@ class SettingsPage(Adw.PreferencesPage):
     def __init__(self, cfg: Config, on_save) -> None:
         super().__init__()
         self._on_save = on_save
+        self._cfg = cfg
 
         general = Adw.PreferencesGroup(title="Actualización")
         self.poll = Adw.SpinRow.new_with_range(30, 3600, 30)
@@ -79,7 +82,8 @@ class SettingsPage(Adw.PreferencesPage):
             self.status.add_css_class("danger")
             return
 
-        cfg = Config(
+        cfg = replace(
+            self._cfg,
             poll_seconds=int(self.poll.get_value()),
             sync_seconds=int(self.sync.get_value()),
             thresholds=thresholds,

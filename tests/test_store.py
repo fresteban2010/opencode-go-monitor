@@ -90,13 +90,19 @@ def test_cost_and_model_aggregates(tmp_path: Path) -> None:
     store.close()
 
 
-def test_daily_cost_includes_empty_days(tmp_path: Path) -> None:
+def test_daily_cost_includes_empty_days_and_older_requests(tmp_path: Path) -> None:
     store = Store(tmp_path / "m.db")
     store.init()
-    store.upsert_requests([item("a", 0.5, started=NOW)])
-    days = store.daily_cost(days=3, now=NOW)
-    assert len(days) == 3
+    store.upsert_requests(
+        [
+            item("a", 0.5, started=NOW),
+            item("old", 0.25, started=NOW - timedelta(days=3)),
+        ]
+    )
+    days = store.daily_cost(days=5, now=NOW)
+    assert len(days) == 5
     assert days[-1] == (NOW.date(), 0.5)
+    assert days[1] == ((NOW - timedelta(days=3)).date(), 0.25)
     assert days[0][1] == 0.0
     store.close()
 

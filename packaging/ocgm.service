@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenCode Go Monitor (servicio headless)
+Documentation=https://github.com/
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=@OCGM@ service
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

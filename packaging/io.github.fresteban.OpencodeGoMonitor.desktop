@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenCode Go Monitor
+Comment=Cuota y gasto de OpenCode Go
+Exec=ocgm gui
+Icon=io.github.fresteban.OpencodeGoMonitor
+Terminal=false
+Categories=Utility;System;
+Keywords=opencode;usage;tokens;cuota;
+StartupWMClass=io.github.fresteban.OpencodeGoMonitor

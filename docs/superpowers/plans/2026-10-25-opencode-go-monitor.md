@@ -53,11 +53,11 @@ Notify), SQLite, urllib, tomllib, pytest.
 - `config.save(cfg: Config, path: Path|None=None) -> None` (0600)
 - `config.paths() -> tuple[Path, Path]` (config, data)
 
-- [ ] Paso 1: test de `load` con TOML parcial aplica defaults y valida mínimo 30 s.
-- [ ] Paso 2: ejecutar y ver fallo.
-- [ ] Paso 3: implementar dataclasses y config.
-- [ ] Paso 4: tests en verde.
-- [ ] Paso 5: commit `feat: scaffold core models and config`.
+- [x] Paso 1: test de `load` con TOML parcial aplica defaults y valida mínimo 30 s.
+- [x] Paso 2: ejecutar y ver fallo.
+- [x] Paso 3: implementar dataclasses y config.
+- [x] Paso 4: tests en verde.
+- [x] Paso 5: commit `feat: scaffold core models and config`.
 
 ### Task 2: Credenciales de OpenCode
 
@@ -73,11 +73,11 @@ Notify), SQLite, urllib, tomllib, pytest.
 Orden: env `OPENCODE_API_KEY` → config → BD (`integration_id='opencode'`, JSON `access`/`expires`) → `auth.json` (`opencode-go`/`opencode`).
 OAuth caducado con API key disponible → devuelve la API key (kind api_key); sin alternativa → `CredentialsError("expired")`.
 
-- [ ] Paso 1: tests: preferencia OAuth, fallback API key, caducado, ausente, JSON malformado no revienta.
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar lectura read-only y resolución.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: commit `feat: resolve credentials read-only from opencode`.
+- [x] Paso 1: tests: preferencia OAuth, fallback API key, caducado, ausente, JSON malformado no revienta.
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar lectura read-only y resolución.
+- [x] Paso 4: verde.
+- [x] Paso 5: commit `feat: resolve credentials read-only from opencode`.
 
 ### Task 3: Cliente de la API
 
@@ -93,11 +93,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - `client.encode_cursor(cursor: dict) -> str` (JSON + URL encoding).
 - `client.ApiError` con `status`, `retryable`.
 
-- [ ] Paso 1: tests con `http.server` local: parseo de usage, cursor compuesto, 401, 429 retryable, JSON inválido.
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar con urllib y User-Agent `ocgm/1.0`.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: commit `feat: opencode api client`.
+- [x] Paso 1: tests con `http.server` local: parseo de usage, cursor compuesto, 401, 429 retryable, JSON inválido.
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar con urllib y User-Agent `ocgm/1.0`.
+- [x] Paso 4: verde.
+- [x] Paso 5: commit `feat: opencode api client`.
 
 ### Task 4: Almacén SQLite
 
@@ -115,11 +115,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - `.daily_cost(days=14) -> list[tuple[date,float]]`
 - `.meta_get(k)/.meta_set(k,v)`, `.record_alert(window, kind, percent, at) -> bool` (False si cooldown activo)
 
-- [ ] Paso 1: tests de esquema, dedupe por id, agregados y cooldown.
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar WAL y migración v1.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: commit `feat: sqlite cache store`.
+- [x] Paso 1: tests de esquema, dedupe por id, agregados y cooldown.
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar WAL y migración v1.
+- [x] Paso 4: verde.
+- [x] Paso 5: commit `feat: sqlite cache store`.
 
 ### Task 5: Sincronización
 
@@ -131,11 +131,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - `sync.synchronize(store: Store, client: OpenCodeClient, full: bool=False, page_size: int=100, max_pages: int=40, now: datetime|None=None) -> SyncResult`
 - Incremental: recorre desde la página más nueva y para al encontrar una petición ya cacheada; `full=True` recorre todo (30 días).
 
-- [ ] Paso 1: tests con cliente falso: primera sync, incremental sin duplicados, para al ver id conocido, tolera error de usage y conserva logs.
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: commit `feat: incremental sync with graceful degradation`.
+- [x] Paso 1: tests con cliente falso: primera sync, incremental sin duplicados, para al ver id conocido, tolera error de usage y conserva logs.
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar.
+- [x] Paso 4: verde.
+- [x] Paso 5: commit `feat: incremental sync with graceful degradation`.
 
 ### Task 6: Análisis y conciliación local
 
@@ -148,11 +148,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - `localdb.session_totals(path: Path, since: datetime) -> LocalTotals(cost_usd, input_tokens, output_tokens, cache_read, sessions)` (read-only).
 - `localdb.compare(store, path, since) -> Reconciliation(server_cost, local_cost, delta_pct)`.
 
-- [ ] Paso 1: tests de ritmo (lineal, ya agotado, resets pasados) y conciliación.
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar; abrir BD con `file:...?mode=ro`.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: commit `feat: burn-rate analysis and local reconciliation`.
+- [x] Paso 1: tests de ritmo (lineal, ya agotado, resets pasados) y conciliación.
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar; abrir BD con `file:...?mode=ro`.
+- [x] Paso 4: verde.
+- [x] Paso 5: commit `feat: burn-rate analysis and local reconciliation`.
 
 ### Task 7: CLI
 
@@ -166,11 +166,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - `ocgm watch`: refresco en terminal.
 - Salida JSON estable (`schema_version: 1`).
 
-- [ ] Paso 1: tests de `status --json` con store temporal y cliente falso.
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar argparse y render.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: prueba en vivo `ocgm doctor` y commit.
+- [x] Paso 1: tests de `status --json` con store temporal y cliente falso.
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar argparse y render.
+- [x] Paso 4: verde.
+- [x] Paso 5: prueba en vivo `ocgm doctor` y commit.
 
 ### Task 8: Bandeja, notificaciones y servicio
 
@@ -183,11 +183,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - `service.run(interval)` bucle headless con señales y backoff.
 - `ocgm autostart enable|disable|status`.
 
-- [ ] Paso 1: tests de umbrales y cooldown (sin depender de libnotify).
-- [ ] Paso 2: ver fallo.
-- [ ] Paso 3: implementar notifier; bandeja con Ayatana; servicio.
-- [ ] Paso 4: verde.
-- [ ] Paso 5: prueba real de bandeja en KDE + commit.
+- [x] Paso 1: tests de umbrales y cooldown (sin depender de libnotify).
+- [x] Paso 2: ver fallo.
+- [x] Paso 3: implementar notifier; bandeja con Ayatana; servicio.
+- [x] Paso 4: verde.
+- [x] Paso 5: prueba real de bandeja en KDE + commit.
 
 ### Task 9: Ventana GTK4
 
@@ -200,12 +200,12 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
 - Actualización desde hilo de sync con `GLib.idle_add`.
 - Cerrar ventana oculta a bandeja si está disponible; sin bandeja, cierra.
 
-- [ ] Paso 1: crear ventana mínima y arrancarla en Wayland (sin errores).
-- [ ] Paso 2: medidores + resumen con datos reales.
-- [ ] Paso 3: tablas y gráfico.
-- [ ] Paso 4: ajustes persistentes.
-- [ ] Paso 5: captura con `spectacle` y revisión visual.
-- [ ] Paso 6: commit `feat: gtk4 dashboard`.
+- [x] Paso 1: crear ventana mínima y arrancarla en Wayland (sin errores).
+- [x] Paso 2: medidores + resumen con datos reales.
+- [x] Paso 3: tablas y gráfico.
+- [x] Paso 4: ajustes persistentes.
+- [x] Paso 5: captura con `spectacle` y revisión visual.
+- [x] Paso 6: commit `feat: gtk4 dashboard`.
 
 ### Task 10: Empaquetado, documentación y verificación final
 
@@ -214,11 +214,11 @@ OAuth caducado con API key disponible → devuelve la API key (kind api_key); si
   `packaging/ocgm.service`, `packaging/icon.svg`, `docs/USAGE.md`
 - Modify: `README.md`, `pyproject.toml`
 
-- [ ] Paso 1: instalador de usuario (binario/entrypoint, .desktop, systemd opcional).
-- [ ] Paso 2: README con instalación, credenciales, límites y privacidad.
-- [ ] Paso 3: `pytest -q` completo en verde.
-- [ ] Paso 4: prueba en vivo: doctor, sync, status, GUI, bandeja, notificación de prueba.
-- [ ] Paso 5: commit `feat: packaging and docs` + tag `v0.1.0`.
+- [x] Paso 1: instalador de usuario (binario/entrypoint, .desktop, systemd opcional).
+- [x] Paso 2: README con instalación, credenciales, límites y privacidad.
+- [x] Paso 3: `pytest -q` completo en verde.
+- [x] Paso 4: prueba en vivo: doctor, sync, status, GUI, bandeja, notificación de prueba.
+- [x] Paso 5: commit `feat: packaging and docs` + tag `v0.1.0`.
 
 ## Verificación final
 

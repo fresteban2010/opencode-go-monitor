@@ -193,10 +193,13 @@ def cmd_autostart(args) -> int:
         print("activado" if autostart.exists() else "desactivado")
         return 0
     if args.action == "enable":
+        import shutil
+
         autostart.parent.mkdir(parents=True, exist_ok=True)
+        executable = shutil.which("ocgm") or f"{sys.executable} -m ocgm"
         autostart.write_text(
             "[Desktop Entry]\nType=Application\nName=OpenCode Go Monitor\n"
-            "Exec=ocgm tray\nX-GNOME-Autostart-enabled=true\n",
+            f"Exec={executable} tray\nX-GNOME-Autostart-enabled=true\n",
             encoding="utf-8",
         )
         print(f"Autostart activado: {autostart}")

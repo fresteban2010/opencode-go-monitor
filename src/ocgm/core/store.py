@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import threading
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
 from .models import ModelAgg, RequestItem, Usage, WindowUsage
@@ -232,9 +232,10 @@ class Store:
         now = now or datetime.now(timezone.utc)
         today = now.astimezone(timezone.utc).date()
         first = today - timedelta(days=days - 1)
+        start = datetime.combine(first, time.min, tzinfo=timezone.utc)
         with self._lock:
             rows = self._db().execute(
-                "select started_at, cost_usd from requests where started_at >= ?", (_ms(now.replace(hour=0, minute=0, second=0, microsecond=0)),)
+                "select started_at, cost_usd from requests where started_at >= ?", (_ms(start),)
             ).fetchall()
         totals: dict[date, float] = {}
         for started_at, cost in rows:

@@ -3,9 +3,10 @@ from __future__ import annotations
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Pango", "1.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gtk  # noqa: E402
+from gi.repository import Adw, Gtk, Pango  # noqa: E402
 
 from ..core.models import ModelAgg  # noqa: E402
 from .format import money, tokens  # noqa: E402
@@ -88,7 +89,7 @@ class ModelsPage(Gtk.ScrolledWindow):
                     widget.set_size_request(width, -1)
                 else:
                     widget.set_hexpand(True)
-                    widget.set_ellipsize(3)
+                    widget.set_ellipsize(Pango.EllipsizeMode.END)
                 if index == 0:
                     widget.add_css_class("monospace")
                 row.append(widget)

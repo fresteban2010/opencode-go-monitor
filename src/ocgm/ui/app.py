@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 import sys
 import threading
-from datetime import datetime
 from pathlib import Path
 
 import gi

@@ -307,4 +307,7 @@ def run_tray() -> int:
         tray = Tray()
     except RuntimeError:
         return 0
+    except Exception as error:  # noqa: BLE001 - headless/no D-Bus must not crash
+        print(f"No se pudo iniciar la bandeja: {error}", file=sys.stderr)
+        return 1
     return tray.run()

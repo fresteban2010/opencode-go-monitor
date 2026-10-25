@@ -33,9 +33,9 @@ def clock(value: datetime | None) -> str:
     return value.astimezone().strftime("%H:%M") if value else "—"
 
 
-def date_short(value: datetime) -> str:
+def date_short(value: datetime | date) -> str:
     months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
-    local = value.astimezone()
+    local = value.astimezone() if isinstance(value, datetime) else value
     return f"{local.day} {months[local.month - 1]}"
 
 

@@ -97,6 +97,23 @@ def test_sync_full_flag_reaches_client(tmp_path: Path, capsys) -> None:
     assert "1 nuevas" in capsys.readouterr().out
 
 
+def test_expired_credentials_exits_2(tmp_path: Path, capsys) -> None:
+    from ocgm.core.credentials import CredentialsError
+
+    def fail(**_):
+        raise CredentialsError("expired")
+
+    code = main(
+        ["status"],
+        cfg_loader=lambda: Config(),
+        data_path=tmp_path,
+        credential_resolver=fail,
+        client_factory=lambda _: FakeClient(make_usage()),
+    )
+    assert code == 2
+    assert "caducado" in capsys.readouterr().err.lower()
+
+
 def test_doctor_passes_with_defaults_and_missing_local_db(tmp_path: Path, capsys, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
     monkeypatch.setattr("ocgm.core.localdb.DEFAULT_OPENCODE_DB", tmp_path / "missing.db")
