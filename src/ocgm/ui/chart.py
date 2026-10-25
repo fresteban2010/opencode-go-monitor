@@ -16,7 +16,9 @@ class CostChart(Gtk.DrawingArea):
         super().__init__()
         self._data: list[tuple[date, float]] = []
         self.set_content_height(150)
+        self.set_hexpand(True)
         self.set_draw_func(self._draw)
+        self.connect("map", lambda *_: self.queue_draw())
 
     def set_data(self, data: list[tuple[date, float]]) -> None:
         self._data = data

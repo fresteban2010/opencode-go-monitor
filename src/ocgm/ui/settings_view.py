@@ -18,6 +18,15 @@ class SettingsPage(Adw.PreferencesPage):
         self._on_save = on_save
         self._cfg = cfg
 
+        self.status = Gtk.Label(label="")
+        self.status.add_css_class("dim-label")
+        status_group = Adw.PreferencesGroup()
+        self.status_row = Adw.ActionRow()
+        self.status_row.set_child(self.status)
+        self.status_row.set_visible(False)
+        status_group.add(self.status_row)
+        self.add(status_group)
+
         general = Adw.PreferencesGroup(title="Actualización")
         self.poll = Adw.SpinRow.new_with_range(30, 3600, 30)
         self.poll.set_title("Cada cuánto consultar la cuota")
@@ -52,23 +61,7 @@ class SettingsPage(Adw.PreferencesPage):
         credentials.add(self.api_key)
         self.add(credentials)
 
-        actions = Adw.PreferencesGroup()
-        row = Adw.ActionRow(title="Guardar cambios")
-        button = Gtk.Button(label="Guardar")
-        button.add_css_class("suggested-action")
-        button.connect("clicked", self._save)
-        row.add_suffix(button)
-        actions.add(row)
-        self.add(actions)
-
-        self.status = Gtk.Label(label="")
-        self.status.add_css_class("dim-label")
-        self.status.set_margin_top(6)
-        status_row = Adw.ActionRow()
-        status_row.set_child(self.status)
-        actions.add(status_row)
-
-    def _save(self, _button) -> None:
+    def save(self) -> None:
         try:
             thresholds = tuple(
                 sorted({max(1, min(100, int(part.strip()))) for part in self.thresholds.get_text().split(",") if part.strip()})
@@ -76,10 +69,12 @@ class SettingsPage(Adw.PreferencesPage):
         except ValueError:
             self.status.set_text("Los umbrales deben ser números separados por comas.")
             self.status.add_css_class("danger")
+            self.status_row.set_visible(True)
             return
         if not thresholds:
             self.status.set_text("Añade al menos un umbral.")
             self.status.add_css_class("danger")
+            self.status_row.set_visible(True)
             return
 
         cfg = replace(
@@ -93,4 +88,5 @@ class SettingsPage(Adw.PreferencesPage):
         save(cfg)
         self.status.remove_css_class("danger")
         self.status.set_text("Guardado.")
+        self.status_row.set_visible(True)
         self._on_save(cfg)

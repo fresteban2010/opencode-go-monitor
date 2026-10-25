@@ -8,7 +8,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk  # noqa: E402
 
 from ..core.models import RequestItem  # noqa: E402
-from .format import clock, money, tokens  # noqa: E402
+from .format import clock, money_small, tokens  # noqa: E402
 
 
 class RequestsPage(Gtk.Box):
@@ -22,7 +22,7 @@ class RequestsPage(Gtk.Box):
         toolbar.set_margin_start(24)
         toolbar.set_margin_end(24)
 
-        title = Gtk.Label(label="Peticiones recientes")
+        title = Gtk.Label(label="Peticiones recientes · máx. 1000")
         title.set_xalign(0)
         title.add_css_class("heading")
         title.set_hexpand(True)
@@ -41,6 +41,12 @@ class RequestsPage(Gtk.Box):
         toolbar.append(errors_label)
         self.append(toolbar)
 
+        self.empty = Gtk.Label(label="Sin peticiones para este filtro.")
+        self.empty.set_margin_top(18)
+        self.empty.set_margin_bottom(6)
+        self.empty.add_css_class("dim-label")
+        self.append(self.empty)
+
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_vexpand(True)
@@ -54,11 +60,6 @@ class RequestsPage(Gtk.Box):
         self.listbox.append(self._header())
         scroller.set_child(self.listbox)
         self.append(scroller)
-
-        self.empty = Gtk.Label(label="Sin peticiones para este filtro.")
-        self.empty.set_margin_top(24)
-        self.empty.add_css_class("dim-label")
-        self.append(self.empty)
 
     def _header(self) -> Gtk.Widget:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -108,15 +109,14 @@ class RequestsPage(Gtk.Box):
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             row.set_margin_top(5)
             row.set_margin_bottom(5)
-            total = item.input_tokens + item.output_tokens
             outcome = "ok" if item.status_code < 400 else f"HTTP {item.status_code}"
             cells = [
                 clock(item.started_at),
                 item.model,
                 item.app or "—",
                 outcome,
-                f"{tokens(item.input_tokens)} / {tokens(item.output_tokens)} ({tokens(total)})",
-                money(item.cost_usd),
+                f"{tokens(item.input_tokens)} / {tokens(item.output_tokens)}",
+                money_small(item.cost_usd),
             ]
             for index, (text, (_, width)) in enumerate(
                 zip(cells, (("", 60), ("", 0), ("", 70), ("", 80), ("", 110), ("", 70)))

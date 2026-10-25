@@ -7,6 +7,15 @@ def money(value: float) -> str:
     return f"${value:,.2f}"
 
 
+def money_small(value: float) -> str:
+    """Coste de una petición: conserva fracciones de céntimo."""
+    if value <= 0:
+        return "$0.00"
+    if value < 0.01:
+        return f"${value:.5f}"
+    return f"${value:,.2f}"
+
+
 def tokens(value: int) -> str:
     if value >= 1_000_000:
         return f"{value / 1_000_000:.1f}M"

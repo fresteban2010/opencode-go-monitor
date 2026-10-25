@@ -78,6 +78,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings_page = SettingsPage(monitor.cfg, self._settings_saved)
 
         stack = Adw.ViewStack()
+        self.stack = stack
         stack.add_titled(self.summary_page, "summary", "Resumen")
         stack.add_titled(self.models_page, "models", "Modelos")
         stack.add_titled(self.requests_page, "requests", "Peticiones")
@@ -93,13 +94,21 @@ class MainWindow(Adw.ApplicationWindow):
         refresh.connect("clicked", lambda *_: self.refresh())
         header.pack_end(refresh)
 
+        self.save_button = Gtk.Button(label="Guardar")
+        self.save_button.add_css_class("suggested-action")
+        self.save_button.set_visible(False)
+        self.save_button.set_tooltip_text("Guardar ajustes")
+        self.save_button.connect("clicked", lambda *_: self.settings_page.save())
+        header.pack_end(self.save_button)
+        stack.connect("notify::visible-child-name", self._page_changed)
+
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(header)
         toolbar.set_content(stack)
         self.set_content(toolbar)
 
-        self.set_default_size(1020, 740)
-        self.set_size_request(760, 560)
+        self.set_default_size(1020, 820)
+        self.set_size_request(760, 620)
 
         self._schedule()
         self.refresh()
@@ -108,6 +117,9 @@ class MainWindow(Adw.ApplicationWindow):
         if self._timer_id:
             GLib.source_remove(self._timer_id)
         self._timer_id = GLib.timeout_add_seconds(self.monitor.cfg.poll_seconds, self._tick)
+
+    def _page_changed(self, stack, _param) -> None:
+        self.save_button.set_visible(stack.get_visible_child_name() == "settings")
 
     def _tick(self) -> bool:
         self.refresh()
@@ -123,7 +135,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.monitor.refresh()
         state = self.monitor.summary()
         daily = self.monitor.store.daily_cost(14)
-        requests = self.monitor.store.requests(200)
+        requests = self.monitor.store.requests(1000)
         GLib.idle_add(self._apply, state, daily, requests)
 
     def _apply(self, state, daily, requests) -> bool:
