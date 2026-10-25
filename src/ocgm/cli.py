@@ -217,6 +217,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("doctor", help="diagnóstico de credenciales y APIs")
     sub.add_parser("watch", help="vista en terminal con refresco")
     sub.add_parser("gui", help="abre la ventana GTK4")
+    sub.add_parser("tray", help="icono de bandeja")
     sub.add_parser("service", help="bucle headless para systemd")
     auto = sub.add_parser("autostart", help="gestiona el inicio automático")
     auto.add_argument("action", choices=["enable", "disable", "status"])
@@ -241,6 +242,10 @@ def main(
         from .ui.app import run
 
         return run(sys.argv[1:] if argv is None else argv)
+    if command == "tray":
+        from .tray import run_tray
+
+        return run_tray()
     if command == "service":
         from .service import run_service
 
