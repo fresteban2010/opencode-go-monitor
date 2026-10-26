@@ -116,11 +116,12 @@ histórico local; la UI indica "detalle por petición no disponible".
 
 ### Cálculo de ritmo
 
-Cada ventana tiene duración conocida (5 h, 7 d, 30 d) y `resetsAt`.
-Inicio = `resetsAt - duración`; transcurrido = ahora - inicio;
-ritmo = `percent / transcurrido`; proyección al reset = `ritmo * duración`.
-Si la proyección supera 100 %, se calcula ETA de agotamiento. Si `resetsAt`
-ya pasó, se muestra "pendiente de actualizar" y se fuerza una consulta.
+Cada ventana tiene duración conocida (5 h, 7 d) y `resetsAt`; la mensual usa
+el mes natural anterior al `resetsAt` (no un 30 d fijo). Inicio = reset
+anterior; transcurrido = ahora - inicio; ritmo = `percent / transcurrido`;
+proyección al reset = `ritmo * duración`. Si la proyección supera 100 %, se
+calcula ETA de agotamiento. Si `resetsAt` ya pasó, se muestra "pendiente de
+actualizar" y se fuerza una consulta.
 
 ### Interfaz
 

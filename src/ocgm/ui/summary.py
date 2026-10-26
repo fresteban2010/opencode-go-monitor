@@ -11,7 +11,7 @@ from gi.repository import Adw, Gtk  # noqa: E402
 
 from ..core.analysis import Summary  # noqa: E402
 from .chart import CostChart  # noqa: E402
-from .format import clock, human_delta, money  # noqa: E402
+from .format import clock, eta_label, human_delta, money  # noqa: E402
 
 WINDOW_LABELS = {"rolling": "5 horas", "weekly": "Semanal", "monthly": "Mensual"}
 
@@ -173,7 +173,7 @@ class SummaryPage(Gtk.ScrolledWindow):
             elif burn.eta is not None:
                 value.add_css_class("danger")
                 projection.add_css_class("danger")
-                projection.set_text(f"A este ritmo se agota a las {clock(burn.eta)}.")
+                projection.set_text(f"A este ritmo se agota a las {eta_label(burn.eta)}.")
             elif burn.projected_percent > 100:
                 value.add_css_class("warn")
                 projection.add_css_class("warn")

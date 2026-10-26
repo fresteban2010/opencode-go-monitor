@@ -104,3 +104,21 @@ def test_summary_today_uses_local_midnight(tmp_path) -> None:
     assert result.spend_today == pytest.approx(0.20)
     assert result.spend_7d == pytest.approx(0.50)
     store.close()
+
+
+def test_monthly_burn_uses_calendar_month_not_fixed_30_days() -> None:
+    resets = datetime(2026, 11, 25, 18, 11, 28, tzinfo=timezone.utc)
+    now = datetime(2026, 10, 26, 19, 24, tzinfo=timezone.utc)
+    result = burn(WindowUsage("ok", 3.0, resets), "monthly", now=now)
+    # Del 25 oct 18:11 al 26 oct 19:24 hay ~25.2 h, no 1.2 h.
+    assert result.rate_pct_per_hour == pytest.approx(3.0 / 25.2167, rel=1e-3)
+    assert result.projected_percent < 100
+    assert result.eta is None
+
+
+def test_monthly_burn_clamps_end_of_month() -> None:
+    resets = datetime(2027, 3, 31, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2027, 3, 10, 12, 0, tzinfo=timezone.utc)
+    result = burn(WindowUsage("ok", 30.0, resets), "monthly", now=now)
+    # El reset anterior cae el 28 feb: ciclo de 31 días, 10 transcurridos.
+    assert result.projected_percent == pytest.approx(30.0 * 31 / 10, rel=1e-3)

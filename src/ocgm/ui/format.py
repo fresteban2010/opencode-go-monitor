@@ -42,6 +42,14 @@ def clock(value: datetime | None) -> str:
     return value.astimezone().strftime("%H:%M") if value else "—"
 
 
+def eta_label(value: datetime, now: datetime | None = None) -> str:
+    local = value.astimezone()
+    current = (now or datetime.now().astimezone()).astimezone()
+    if local.date() == current.date():
+        return local.strftime("%H:%M")
+    return f"{date_short(local)} {local.strftime('%H:%M')}"
+
+
 def date_short(value: datetime | date) -> str:
     months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
     local = value.astimezone() if isinstance(value, datetime) else value

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
@@ -9,7 +10,6 @@ from .store import Store
 WINDOW_DURATIONS = {
     "rolling": timedelta(hours=5),
     "weekly": timedelta(days=7),
-    "monthly": timedelta(days=30),
 }
 
 
@@ -31,8 +31,22 @@ class Summary:
     top_models: list[ModelAgg]
 
 
+def _previous_month(value: datetime) -> datetime:
+    year, month = value.year, value.month - 1
+    if month == 0:
+        year, month = year - 1, 12
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)
+
+
+def _duration(kind: str, resets_at: datetime) -> timedelta:
+    if kind == "monthly":
+        return resets_at - _previous_month(resets_at)
+    return WINDOW_DURATIONS[kind]
+
+
 def burn(window: WindowUsage, kind: str, now: datetime) -> Burn:
-    duration = WINDOW_DURATIONS[kind]
+    duration = _duration(kind, window.resets_at)
     resets_in = window.resets_at - now
     if resets_in <= timedelta(0):
         return Burn(0.0, window.percent, None, resets_in)
